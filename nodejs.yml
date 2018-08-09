@@ -1,0 +1,83 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: update package
+    update_cache: yes
+
+#installing node js
+#https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-16-04#how-to-install-the-distro-stable-version-for-ubuntu
+
+- hosts: app
+  become: yes
+  vars:
+    folderpath: /home/ansible/nodefile
+    node_version: 8
+    app_ip: 10.10.11.12
+  tasks: 
+  - name: new folder
+    file:
+      path: "{{ folderpath }}"
+      state: directory
+      mode: 0755
+
+  - name: Download script 
+    command: "curl -sL https://deb.nodesource.com/setup_{{ node_version }}.x -o {{ folderpath }}nodesource_setup.sh"
+  - name: run script
+    command: sudo bash {{folderpath}}/nodesource_setup.sh
+  - name: install node js
+    apt:
+      name: nodejs
+      state: present
+
+  - name: template for hello.js
+    template:
+      src: "templates/hello.js.j2"
+      dest: "{{ folderpath }}/hello.js"
+  
+  - name: Install npm node.js package globally
+    npm:
+      name: pm2
+      global: yes
+  
+  - name: start nodejs
+    command: "pm2 start {{ folderpath }}/hello.js"
+
+  
+- hosts: web
+  become: yes
+  vars:
+    web_dns_name: 
+    app_ipaddress: 
+    defaultdest: etc/nginx/sites-available/default
+  tasks:   
+  - name: install nginx
+    apt:
+      name: nginx
+      state: present
+
+  - nmae: template for nginx folder
+    template:
+      src: templates/default.j2
+      dest: {{ defaultdest }}
+    notify: Restart nginx
+  - handlers:
+    name: Restart nginx
+    service:
+      name: httpd
+      state: restarted
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
